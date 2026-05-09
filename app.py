@@ -11,22 +11,37 @@ from collections import deque
 st.set_page_config(page_title="MSRTC Crowd Sync", page_icon="🚍", layout="wide")
 
 # =========================
-# State
+# Session state
 # =========================
 if "lang" not in st.session_state:
     st.session_state.lang = "EN"  # EN / MR
 
 if "recent" not in st.session_state:
-    st.session_state.recent = deque(maxlen=5)  # store dict items
+    st.session_state.recent = deque(maxlen=5)
+
+if "selected_date" not in st.session_state:
+    st.session_state.selected_date = date.today()
+
+if "selected_time" not in st.session_state:
+    st.session_state.selected_time = "08:00 AM"
+
+if "travel_type" not in st.session_state:
+    st.session_state.travel_type = "Student"
+
+if "weather" not in st.session_state:
+    st.session_state.weather = "Clear"
 
 # =========================
-# Theme + Mobile UI CSS
+# Theme
 # =========================
 PRIMARY = "#C1121F"
 BG = "#F7F7F7"
 TEXT = "#111827"
 MUTED = "#6B7280"
 
+# =========================
+# Premium CSS (IMPORTANT: CSS must stay inside this block)
+# =========================
 st.markdown(
     f"""
 <style>
@@ -56,7 +71,7 @@ header {{visibility:hidden;}}
   border-bottom: 1px solid #eee;
   padding: 14px 14px;
   border-radius: 20px;
-  margin-bottom: 12px;
+  margin-bottom: 10px; /* reduced */
   box-shadow: 0 8px 22px rgba(0,0,0,0.06);
 }}
 
@@ -69,24 +84,15 @@ header {{visibility:hidden;}}
   gap:10px;
 }}
 
-.langbtn {{
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid #eee;
-  background: #fff;
-  color: {TEXT};
-  font-weight: 700;
-}}
-
 /* Hero card */
 .hero {{
   border-radius: 22px;
   overflow: hidden;
   position: relative;
-  height: 160px;
+  height: 150px;         /* slightly reduced */
   background: linear-gradient(135deg, rgba(193,18,31,0.95), rgba(17,24,39,0.75));
   box-shadow: 0 18px 40px rgba(0,0,0,0.10);
-  margin-bottom: 14px;
+  margin-bottom: 12px;   /* reduced */
 }}
 .hero::after {{
   content:"";
@@ -97,7 +103,7 @@ header {{visibility:hidden;}}
 .heroText {{
   position:absolute;
   inset:0;
-  padding: 18px;
+  padding: 16px;
   display:flex;
   flex-direction:column;
   justify-content:flex-end;
@@ -121,7 +127,7 @@ header {{visibility:hidden;}}
   padding: 14px;
   box-shadow: 0 14px 36px rgba(0,0,0,0.08);
   border: 1px solid #f1f1f1;
-  margin-bottom: 14px;
+  margin-bottom: 12px; /* reduced */
 }}
 .cardTitle {{
   font-weight: 900;
@@ -135,74 +141,12 @@ header {{visibility:hidden;}}
 /* Labels */
 div[data-testid="stWidgetLabel"] > label {{
   color: {TEXT} !important;
-  font-weight: 800 !important;
+  font-weight: 900 !important;
 }}
 
-/* Input styling */
-.inputHint {{
-  color: {MUTED};
-  font-size: 0.9rem;
-  margin-top: 6px;
-}}
-
-/* Chips */
-.chiprow {{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  padding-bottom: 4px;
-}}
-.chip {{
-  white-space: nowrap;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid #eaeaea;
-  background: #fff;
-  color: {TEXT};
-  font-weight: 800;
-  cursor: pointer;
-}}
-.chip-selected {{
-  border: 1px solid {PRIMARY};
-  background: {PRIMARY};
-  color: white;
-}}
-
-/* Travel type cards */
-.typegrid {{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-}}
-.typecard {{
-  border-radius: 18px;
-  padding: 12px 10px;
-  border: 1px solid #eaeaea;
-  background: #fff;
-  text-align:center;
-  font-weight: 900;
-  color: {TEXT};
-}}
-.type-selected {{
-  border: 2px solid {PRIMARY};
-  background: rgba(193,18,31,0.07);
-}}
-
-/* Predict button */
-div.stButton > button {{
-  width: 100%;
-  border-radius: 18px;
-  padding: 0.9rem 1rem;
-  border: 0;
-  background: linear-gradient(135deg, {PRIMARY}, #ff3b30);
-  color: white;
-  font-weight: 950;
-  box-shadow: 0 16px 36px rgba(193,18,31,0.30);
-  transition: transform 120ms ease, filter 120ms ease;
-}}
-div.stButton > button:hover {{
-  transform: translateY(-1px) scale(1.01);
-  filter: brightness(1.03);
+/* Reduce Streamlit default column gaps a bit */
+div[data-testid="stHorizontalBlock"] {{
+  gap: 0.55rem !important;
 }}
 
 /* Result animation */
@@ -274,13 +218,72 @@ div.stButton > button:hover {{
   color: {MUTED};
 }}
 .navactive {{ color: {PRIMARY}; }}
+
+/* ============ PREMIUM TIME SLOT UI (TIGHTER GAPS) ============ */
+.ts-wrap{{ margin-top: 6px; }}
+.ts-wrap .stButton {{ margin-bottom: 0.20rem !important; }}
+
+.ts-row{{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;  /* tighter */
+}}
+@media (max-width: 520px){{
+  .ts-row{{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }}
+}}
+
+.ts-btn button{{
+  width: 100% !important;
+  height: 40px !important;        /* slightly smaller */
+  border-radius: 999px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.2px !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease !important;
+}}
+.ts-btn button:hover{{
+  transform: translateY(-1px) scale(1.005) !important;
+  filter: brightness(1.02) !important;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.10) !important;
+}}
+.ts-selected button{{
+  outline: 2px solid rgba(255,255,255,0.92) !important;
+  box-shadow: 0 0 0 3px rgba(193,18,31,0.22),
+              0 12px 22px rgba(193,18,31,0.18) !important;
+  transform: scale(1.01) !important;
+}}
+
+.ts-night button{{ background: linear-gradient(135deg, #6b0210, #a30f1f) !important; }}
+.ts-morning button{{ background: linear-gradient(135deg, #C1121F, #ff3b30) !important; }}
+.ts-afternoon button{{ background: linear-gradient(135deg, #e34214, #c1121f) !important; }}
+.ts-evening button{{ background: linear-gradient(135deg, #c1121f, #ff6a00) !important; }}
+.ts-late button{{ background: linear-gradient(135deg, #4a000a, #8b0d1b) !important; }}
+
+/* Predict button */
+div.stButton > button {{
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  border: 0;
+  background: linear-gradient(135deg, {PRIMARY}, #ff3b30);
+  color: white;
+  font-weight: 950;
+  box-shadow: 0 16px 36px rgba(193,18,31,0.30);
+  transition: transform 120ms ease, filter 120ms ease;
+}}
+div.stButton > button:hover {{
+  transform: translateY(-1px) scale(1.01);
+  filter: brightness(1.03);
+}}
 </style>
 """,
     unsafe_allow_html=True,
 )
 
 # =========================
-# Calendar (CSV) loader (Option A)
+# CSV calendar loader (Option A)
 # CSV columns: date,name_en,name_mr,type (festival/holiday)
 # =========================
 @st.cache_data
@@ -299,7 +302,7 @@ def load_calendar_events(csv_path="festivals_mh_2026.csv"):
                 else:
                     festivals[d] = payload
     except FileNotFoundError:
-        # don't crash UI
+        # don't crash app
         holidays, festivals = {}, {}
     return holidays, festivals
 
@@ -317,13 +320,45 @@ def get_calendar_features(d: date):
     }
 
 # =========================
-# UI helpers
+# App logic helpers
 # =========================
 DESTINATIONS = ["Pune", "Kolhapur", "Akkalkot", "Pandharpur", "Dharashiv", "Latur", "Mumbai", "Tuljapur", "Sangola", "Barshi", "Swargate"]
 WEATHER = [("☀ Clear", "Clear"), ("🌧 Rain", "Rain"), ("⛈ Heavy Rain", "Heavy Rain"), ("🌫 Fog", "Fog")]
 
-def time_slots_24():
-    return [f"{h:02d}:00" for h in range(24)]
+def build_time_slots_12h():
+    time_slots = []
+    for hour in range(24):
+        suffix = "AM" if hour < 12 else "PM"
+        display_hour = hour % 12
+        if display_hour == 0:
+            display_hour = 12
+        time_slots.append(f"{display_hour:02d}:00 {suffix}")
+    return time_slots
+
+def slot_theme_class(slot_label: str) -> str:
+    hh = int(slot_label.split(":")[0])
+    suffix = slot_label.split()[-1]
+    if suffix == "AM":
+        hour24 = 0 if hh == 12 else hh
+    else:
+        hour24 = 12 if hh == 12 else hh + 12
+
+    if 0 <= hour24 <= 5:
+        return "ts-night"
+    if 6 <= hour24 <= 11:
+        return "ts-morning"
+    if 12 <= hour24 <= 16:
+        return "ts-afternoon"
+    if 17 <= hour24 <= 21:
+        return "ts-evening"
+    return "ts-late"
+
+def hour_from_slot(slot_label: str) -> int:
+    hh = int(slot_label.split(":")[0])
+    suffix = slot_label.split()[-1]
+    if suffix == "AM":
+        return 0 if hh == 12 else hh
+    return 12 if hh == 12 else hh + 12
 
 def crowd_level_logic(occupancy: int) -> str:
     if occupancy > 75:
@@ -347,7 +382,6 @@ def bilingual_suggestion(level: str):
     return eng, marathi_map[level]
 
 def travel_type_message(travel_type: str, hour: int, level: str):
-    # More "app-like" actionable wording
     peak = (8 <= hour <= 10) or (18 <= hour <= 20)
     if travel_type == "Student":
         if peak and level != "Low":
@@ -357,27 +391,19 @@ def travel_type_message(travel_type: str, hour: int, level: str):
         if peak:
             return "💼 Peak commute detected. Keep 20–30 min buffer time."
         return "💼 Office mode: Smooth commute expected outside peak hours."
-    # Tourist
     if level == "High":
         return "🧳 Tourist mode: Avoid this slot for luggage comfort—try mid-day."
     return "🧳 Tourist mode: Good slot for relaxed sightseeing travel."
 
 def simulate_occupancy(dest: str, d: date, hour: int, weather: str, travel_type: str, cal: dict) -> int:
     occ = 35
-
-    # rush hours
     if hour in [8, 9, 10, 18, 19, 20]:
         occ += 30
-
-    # weekend
     if cal["is_weekend"]:
         occ += 14
-
-    # destination load
     if dest == "Mumbai":
         occ += 10
 
-    # weather
     if weather == "Rain":
         occ += 6
     elif weather == "Heavy Rain":
@@ -385,13 +411,11 @@ def simulate_occupancy(dest: str, d: date, hour: int, weather: str, travel_type:
     elif weather == "Fog":
         occ += 5
 
-    # travel type weights
     if travel_type == "Office Worker":
         occ += 6
     elif travel_type == "Tourist":
         occ += 3
 
-    # festival/holiday from CSV
     if cal["is_festival"]:
         occ += 10
     if cal["is_holiday"]:
@@ -401,7 +425,6 @@ def simulate_occupancy(dest: str, d: date, hour: int, weather: str, travel_type:
     return max(5, min(98, int(occ)))
 
 def best_time_engine(dest: str, d: date, hour: int, weather: str, travel_type: str, cal: dict):
-    # check +/- 1 hour
     candidates = [max(0, hour - 1), hour, min(23, hour + 1)]
     best_h, best_occ = hour, 999
     for h in candidates:
@@ -409,21 +432,22 @@ def best_time_engine(dest: str, d: date, hour: int, weather: str, travel_type: s
         if occ < best_occ:
             best_occ = occ
             best_h = h
+    # keep 24h output for best time; you can also show AM/PM if you want
     return f"{best_h:02d}:00", best_occ
 
 # =========================
-# MOBILE CONTAINER START
+# MOBILE container start
 # =========================
 st.markdown('<div class="mobile">', unsafe_allow_html=True)
 
 # =========================
-# Topbar (sticky)
+# Topbar
 # =========================
-c1, c2 = st.columns([1.6, 0.7])
-with c1:
+top_l, top_r = st.columns([1.6, 0.7])
+with top_l:
     st.markdown('<div class="topbar"><div class="brand">🚍 MSRTC Crowd Sync</div></div>', unsafe_allow_html=True)
 
-with c2:
+with top_r:
     toggle_label = "🌐 मराठी" if st.session_state.lang == "EN" else "🌐 English"
     if st.button(toggle_label, use_container_width=True):
         st.session_state.lang = "MR" if st.session_state.lang == "EN" else "EN"
@@ -444,94 +468,78 @@ st.markdown(
 )
 
 # =========================
-# Input Card
+# Input card
 # =========================
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown('<div class="cardTitle">📦 Trip Details</div>', unsafe_allow_html=True)
 
-# Fixed source
 st.text_input("🚏 From (Fixed)", value="Solapur", disabled=True)
-
-# Destination
 destination = st.selectbox("🏁 Destination", DESTINATIONS)
 
-# Swap button (UI-only because source fixed)
-st.caption("🔄 Swap disabled (Source is fixed as Solapur).")
-
-# Date cards (Today + next 6 days)
+# Date quick cards
 st.markdown("📅 Journey Date")
 days = [date.today() + timedelta(days=i) for i in range(7)]
-labels = []
-for d in days:
-    if d == date.today():
-        labels.append(("TODAY", d))
-    elif d == date.today() + timedelta(days=1):
-        labels.append(("TOMORROW", d))
-    else:
-        labels.append((d.strftime("%a").upper(), d))
-
 date_cols = st.columns(7)
-if "selected_date" not in st.session_state:
-    st.session_state.selected_date = date.today()
-
-for i, (lab, d) in enumerate(labels):
-    selected = (d == st.session_state.selected_date)
-    btn_text = f"{lab}\n{d.strftime('%d %b')}"
-    if date_cols[i].button(btn_text, key=f"date_{i}", use_container_width=True):
+for i, d in enumerate(days):
+    if d == date.today():
+        label = f"TODAY\n{d.strftime('%d %b')}"
+    elif d == date.today() + timedelta(days=1):
+        label = f"TMRW\n{d.strftime('%d %b')}"
+    else:
+        label = f"{d.strftime('%a').upper()}\n{d.strftime('%d %b')}"
+    if date_cols[i].button(label, key=f"date_{i}", use_container_width=True):
         st.session_state.selected_date = d
 
 selected_date = st.session_state.selected_date
 
-# Time chips (24 hour)
-st.markdown("⏰ Time Slot (24-hour)")
-if "selected_time" not in st.session_state:
-    st.session_state.selected_time = "08:00"
-
-time_cols = st.columns(4)
-# show as segmented grid, still mobile-friendly
-slots = time_slots_24()
-# render 24 buttons in 6 rows x 4 cols
-for r in range(6):
-    cols = st.columns(4)
-    for c in range(4):
-        idx = r * 4 + c
-        ts = slots[idx]
-        label = ts
-        is_sel = (ts == st.session_state.selected_time)
-        if cols[c].button(("✅ " if is_sel else "") + label, key=f"time_{ts}", use_container_width=True):
-            st.session_state.selected_time = ts
-
-selected_time = st.session_state.selected_time
-hour = int(selected_time.split(":")[0])
-
-# Travel type cards
+# Travel type
 st.markdown("🧍 Travel Type")
-if "travel_type" not in st.session_state:
-    st.session_state.travel_type = "Student"
-
 types = [("🎓 Student", "Student"), ("💼 Office Worker", "Office Worker"), ("🧳 Tourist", "Tourist")]
-cols = st.columns(3)
+tcols = st.columns(3)
 for i, (lab, val) in enumerate(types):
     is_sel = (st.session_state.travel_type == val)
-    if cols[i].button(("✅ " if is_sel else "") + lab, key=f"type_{val}", use_container_width=True):
+    if tcols[i].button(("✅ " if is_sel else "") + lab, key=f"type_{val}", use_container_width=True):
         st.session_state.travel_type = val
-
 travel_type = st.session_state.travel_type
 
-# Weather chips
+# Weather
 st.markdown("🌦 Weather")
-if "weather" not in st.session_state:
-    st.session_state.weather = "Clear"
-
 wcols = st.columns(4)
 for i, (lab, val) in enumerate(WEATHER):
     is_sel = (st.session_state.weather == val)
     if wcols[i].button(("✅ " if is_sel else "") + lab, key=f"w_{val}", use_container_width=True):
         st.session_state.weather = val
-
 weather = st.session_state.weather
 
-st.markdown("<hr style='border:0;height:1px;background:#eee;margin:12px 0;'/>", unsafe_allow_html=True)
+# Premium time slots
+st.markdown("⏰ Time Slot Selection (AM/PM)")
+st.caption("Tap a time slot. Selected slot gets glow + tick + theme by time.")
+
+time_slots = build_time_slots_12h()
+st.markdown('<div class="ts-wrap">', unsafe_allow_html=True)
+
+for r in range(0, len(time_slots), 4):
+    row = time_slots[r:r+4]
+    st.markdown('<div class="ts-row">', unsafe_allow_html=True)
+    cols = st.columns(4)
+    for i, slot in enumerate(row):
+        is_sel = (slot == st.session_state.selected_time)
+        theme = slot_theme_class(slot)
+        wrapper_cls = f"ts-btn {theme} " + ("ts-selected" if is_sel else "")
+        with cols[i]:
+            st.markdown(f'<div class="{wrapper_cls}">', unsafe_allow_html=True)
+            btn_label = f"✔ {slot}" if is_sel else slot
+            if st.button(btn_label, key=f"ts_{slot}", use_container_width=True):
+                st.session_state.selected_time = slot
+            st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+selected_time = st.session_state.selected_time
+hour = hour_from_slot(selected_time)
+
+st.markdown("<hr style='border:0;height:1px;background:#eee;margin:10px 0;'/>", unsafe_allow_html=True)
 predict = st.button("🚀 Predict Crowd", use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -542,14 +550,14 @@ if predict:
     cal = get_calendar_features(selected_date)
 
     with st.spinner("Predicting occupancy…"):
-        t.sleep(0.9)
+        t.sleep(0.8)
 
     occupancy = simulate_occupancy(destination, selected_date, hour, weather, travel_type, cal)
     level = crowd_level_logic(occupancy)
     eng, mr = bilingual_suggestion(level)
     best_time, best_occ = best_time_engine(destination, selected_date, hour, weather, travel_type, cal)
 
-    # Store recent searches
+    # store recent searches
     st.session_state.recent.appendleft({
         "route": f"Solapur → {destination}",
         "time": selected_time,
@@ -557,12 +565,7 @@ if predict:
         "when": datetime.now().strftime("%H:%M"),
     })
 
-    # Festival card
-    fest_payload = cal["festival"]
-    holiday_payload = cal["holiday"]
-    show_festival = cal["is_festival"] == 1
-
-    # Badge class
+    # badge style
     badge_cls = "badge-med"
     badge_icon = "🟡"
     if level == "High":
@@ -570,49 +573,47 @@ if predict:
     elif level == "Low":
         badge_cls, badge_icon = "badge-low", "🟢"
 
-    # Result card
     st.markdown('<div class="card resultAnim">', unsafe_allow_html=True)
     st.markdown('<div class="cardTitle">📊 Result</div>', unsafe_allow_html=True)
 
     st.markdown(f'<span class="badge {badge_cls}">{badge_icon} {level} Crowd</span>', unsafe_allow_html=True)
     st.write("")
 
-    # Progress bar
     st.markdown(f"**Occupancy: {occupancy}%**")
     st.progress(occupancy / 100)
 
-    # Bilingual output based on toggle
     st.markdown("### 🌍 Bilingual Output")
     st.write(f"**English:** {eng}")
     st.write(f"**मराठी:** {mr}")
 
-    # Smart travel message
     st.markdown("### 🎯 Smart Travel Message")
     st.info(travel_type_message(travel_type, hour, level))
 
-    # Best time
     st.markdown("### ⏱ Best Time Suggestion")
     st.success(f"Best time to travel: **{best_time}** (≈ **{best_occ}%** crowd)")
 
-    # Festival output
-    if show_festival:
-        fest_name = fest_payload["en"] if fest_payload else "Festival"
+    # festival/holiday output
+    if cal["is_festival"]:
+        fest = cal["festival"] or {}
+        fest_name = fest.get("en", "Festival")
+        fest_mr = fest.get("mr", "")
         st.markdown(
             f"""
             <div class="festival resultAnim">
-              <div class="festivalTitle">🎉 Festival Alert: {fest_name} Rush Expected</div>
+              <div class="festivalTitle">🎉 Festival Alert: {fest_name}{(" / " + fest_mr) if fest_mr else ""}</div>
               <div style="color:{MUTED}; font-weight:800; margin-top:6px;">
-                Festival days often increase passenger demand. Consider off-peak hours.
+                Festival days often increase passenger demand. Prefer off-peak hours.
               </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    # Holiday output
     if cal["is_holiday"]:
-        hol_name = holiday_payload["en"] if holiday_payload else "Holiday"
-        st.warning(f"🏛️ Holiday Active: {hol_name} → crowd may increase.")
+        hol = cal["holiday"] or {}
+        hol_name = hol.get("en", "Holiday")
+        hol_mr = hol.get("mr", "")
+        st.warning(f"🏛️ Holiday Active: {hol_name}" + (f" / {hol_mr}" if hol_mr else "") + " → crowd may increase.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -656,7 +657,7 @@ Buses between <b>1 PM – 3 PM</b> usually have lower occupancy. Try mid-day slo
 st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================
-# Bottom nav (UI-only)
+# Bottom nav (UI only)
 # =========================
 st.markdown(
     f"""
@@ -669,5 +670,5 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# MOBILE CONTAINER END
+# MOBILE container end
 st.markdown("</div>", unsafe_allow_html=True)
